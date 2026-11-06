@@ -1,0 +1,83 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Build files
+dist/
+build/
+.next/
+out/
+
+# Logs
+*.log
+logs/
+
+# Cache
+.cache/
+.npm/
+.eslintcache
+.vite/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Python environment files
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# RAG / Vector databases
+chroma/
+chroma_db/
+vector_db/
+*.sqlite
+*.sqlite3
+
+# Uploaded/generated files
+uploads/
+uploaded_files/
+documents/
+temp/
+tmp/
+
+# Model files
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.onnx
+
+# Secrets / API keys
+*.pem
+*.key
+service-account.json
+credentials.json
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Misc
+.DS_Store

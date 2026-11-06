@@ -1,0 +1,29 @@
+# Backend
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+
+# LangChain
+langchain
+langchain-community
+langchain-core
+langchain-huggingface
+langchain-chroma
+
+# PDF processing
+pypdf
+
+# Embeddings / Hugging Face
+sentence-transformers
+transformers
+huggingface-hub
+
+# Vector Database
+chromadb
+
+# Hugging Face inference
+huggingface-hub
+
+# HTTP / utilities
+requests
