@@ -1,10 +1,10 @@
 # from Backend.app.supabase_client import supabase
 from app.supabase_client import supabase
-# from rag.embeddings import get_embeddings
 from app.rag.embedding import get_embeddings
 
 
-embeddings = get_embeddings()
+def get_embedding_model():
+    return get_embeddings()
 
 
 def add_document_chunks(chunks, document_id):
@@ -14,6 +14,7 @@ def add_document_chunks(chunks, document_id):
 
     print(f"STEP 8B: Generating embeddings for {len(texts)} chunks")
 
+    embeddings = get_embedding_model()
     vectors = embeddings.embed_documents(texts)
 
     print(f"STEP 8C: Embeddings generated - {len(vectors)}")
@@ -46,6 +47,7 @@ def search_document_chunks(
     user_id=None,
     k=5
 ):
+    embeddings = get_embedding_model()
     query_embedding = embeddings.embed_query(query)
 
     response = (
