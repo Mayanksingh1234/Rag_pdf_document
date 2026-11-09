@@ -1,4 +1,3 @@
-# from Backend.app.supabase_client import supabase
 from app.supabase_client import supabase
 from app.rag.embedding import get_embeddings
 
@@ -48,6 +47,7 @@ def search_document_chunks(
     k=5
 ):
     embeddings = get_embedding_model()
+
     query_embedding = embeddings.embed_query(query)
 
     response = (

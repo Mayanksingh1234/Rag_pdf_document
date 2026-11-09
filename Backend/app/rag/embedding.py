@@ -1,13 +1,16 @@
-from langchain_huggingface import HuggingFaceEmbeddings
+import os
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 
 def get_embeddings():
-    return HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2",
-        model_kwargs={
-            "device": "cpu"
-        },
-        encode_kwargs={
-            "normalize_embeddings": True
-        }
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if not api_key:
+        raise EnvironmentError("GEMINI_API_KEY is not set.")
+
+    return GoogleGenerativeAIEmbeddings(
+        model="gemini-embedding-001",
+        google_api_key=api_key,
+        task_type="RETRIEVAL_DOCUMENT",
+        output_dimensionality=768,
     )
