@@ -8,9 +8,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from app.rag.retriever import get_retriever
 
 
-BGE_QUERY_INSTRUCTION = (
-    "Represent this sentence for searching relevant passages: "
-)
+
 
 
 def format_docs(rows):
@@ -108,9 +106,7 @@ def get_rag_chain(
     )
 
     def retrieve_context(question: str) -> str:
-        prefixed_query = BGE_QUERY_INSTRUCTION + question
-
-        rows = retriever(prefixed_query)
+        rows = retriever(question)
 
         return format_docs(rows)
 
