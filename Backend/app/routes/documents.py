@@ -1,32 +1,83 @@
-import os
-from fastapi import APIRouter, HTTPException, UploadFile, File
-from app.rag.vector_store import get_vector_store
+from fastapi import APIRouter, HTTPException, Depends
 
-router=APIRouter()
-UPLOAD_DIR="/app/uploads"
+from app.supabase_client import supabase
+from app.auth.auth import get_current_user
+
+router = APIRouter()
+@router.get("/documents")
+async def get_documents(
+    current_user=Depends(get_current_user)
+):
+    user_id = str(current_user.id)
+
+    response = (
+        supabase
+        .table("documents")
+        .select(
+            "id, file_name, file_size, mime_type, page_count, chunk_count, status, created_at"
+        )
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    return response.data
+
 @router.delete("/document/{document_id}")
-async def delete_document(document_id:str):
-    store=get_vector_store()
-    existing=store._collection.get(where={"document_id": document_id})
-    if not existing["ids"]:
-        raise HTTPException(status_code=404, detail="Document not found")   
-    # print(existing)
-    filenames={
-        meta.get("document_name")
-        for meta in existing["metadatas"]
-        if meta and meta.get("document_name")
-    }
-    store._collection.delete(where={"document_id": document_id})
-    removed_files=[]
-    for filename in filenames:
-        filepath=os.path.join(UPLOAD_DIR,filename)
-        if os.path.exists(filepath):
-            os.remove(filepath)
-            removed_files.append(filename)
+async def delete_document(
+    document_id: str,
+    current_user=Depends(get_current_user)
+):
+    user_id = str(current_user.id)
+
+    # Check that the document belongs to the current user
+    document_response = (
+        supabase
+        .table("documents")
+        .select("id, storage_path, file_name")
+        .eq("id", document_id)
+        .eq("user_id", user_id)
+        .maybe_single()
+        .execute()
+    )
+
+    document = document_response.data
+
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+
+    # Delete PDF from Supabase Storage
+    try:
+        supabase.storage.from_("Pdfs").remove([
+            document["storage_path"]
+        ])
+    except Exception:
+        pass
+
+    # Delete all chunks belonging to the document
+    (
+        supabase
+        .table("document_chunks")
+        .delete()
+        .eq("document_id", document_id)
+        .execute()
+    )
+
+    # Delete the document record
+    (
+        supabase
+        .table("documents")
+        .delete()
+        .eq("id", document_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+
     return {
         "document_id": document_id,
-        "chunks_deleted": len(existing["ids"]),
-        "files_removed": removed_files,
+        "file_name": document["file_name"],
         "message": "Document deleted successfully."
-        }
-    
+    }

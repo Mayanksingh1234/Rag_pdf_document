@@ -4,7 +4,7 @@ import { Left_component } from '../components/Left_component'
 import { Upload_document } from '../components/Upload_document'
 import { RiStarSmileLine } from "react-icons/ri";
 import { askQuestion, deleteDocument } from '../api'
-
+import { getDocuments } from "../api";
 // --- Lightweight text formatter (no markdown library) ---
 // Handles **bold**, numbered lists ("1. ...") and bulleted lists ("- " / "* ")
 
@@ -31,12 +31,12 @@ function renderFormattedAnswer(text) {
     const Tag = currentList.type
     blocks.push(
       <Tag
-        key={blocks.length}
-        className={
-          Tag === 'ol'
-            ? 'list-decimal pl-5 mb-2 space-y-1 text-gray-800'
-            : 'list-disc pl-5 mb-2 space-y-1 text-gray-800'
-        }
+      key={blocks.length}
+      className={
+        Tag === 'ol'
+        ? 'list-decimal pl-5 mb-2 space-y-1 text-gray-800'
+        : 'list-disc pl-5 mb-2 space-y-1 text-gray-800'
+      }
       >
         {currentList.items.map((item, i) => (
           <li key={i}>{parseInlineBold(item, `li-${blocks.length}-${i}`)}</li>
@@ -45,11 +45,11 @@ function renderFormattedAnswer(text) {
     )
     currentList = null
   }
-
+  
   lines.forEach((line) => {
     const numberedMatch = line.match(/^\d+\.\s+(.*)/)
     const bulletMatch = line.match(/^[-*]\s+(.*)/)
-
+    
     if (numberedMatch) {
       if (!currentList || currentList.type !== 'ol') {
         flushList()
@@ -74,6 +74,9 @@ function renderFormattedAnswer(text) {
   flushList()
   return blocks
 }
+
+
+
 // --- end formatter ---
 
 export const Home = () => {
@@ -83,6 +86,8 @@ export const Home = () => {
   const [isAsking, setIsAsking] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const scrollRef = useRef(null)
+  const [documents, setDocuments] = useState([]);
+  const [documentsLoading, setDocumentsLoading] = useState(true);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -108,6 +113,20 @@ export const Home = () => {
       setIsAsking(false)
     }
   }
+  useEffect(() => {
+  const loadDocuments = async () => {
+    try {
+      const data = await getDocuments();
+      setDocuments(data);
+    } catch (error) {
+      console.error("Failed to load documents:", error);
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
+  
+  loadDocuments();
+}, []);
 
   async function handleDelete() {
     if (!document || isDeleting) return
@@ -127,17 +146,39 @@ export const Home = () => {
       setIsDeleting(false)
     }
   }
+  async function handleDeleteDocument(doc) {
+  const confirmed = window.confirm(
+    `Delete "${doc.file_name}" permanently?`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await deleteDocument(doc.id);
+
+    // Remove it from the document list
+    setDocuments((prev) =>
+      prev.filter((item) => item.id !== doc.id)
+    );
+
+    // If this was the active document, clear the chat
+    if (document?.documentId === doc.id) {
+      setDocument(null);
+      setMessages([]);
+      setInput("");
+    }
+  } catch (error) {
+    console.error("Failed to delete document:", error);
+    alert("Couldn't delete the document. Please try again.");
+  }
+}
 
   return (
      <div className='m-0; p-2 md:p-4 lg:px-6 lg:py-4'>
-          <Navbar/>
+          
 
     <div className="flex h-screen bg-gray-100">
-      {/* Left Sidebar */}
-      <Left_component/>
-
-      {/* Center Content */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-6 overflow-y-auto">
         <div className="h-full rounded-xl bg-white shadow-md border border-gray-200 p-6 flex flex-col">
           <h2 className="text-lg md:text-2xl font-bold text-gray-800 flex gap-2 md:gap-3 items-center">
             Chat with your PDF <RiStarSmileLine className='text-violet-500'/>
@@ -149,7 +190,17 @@ export const Home = () => {
 
           {!document ? (
             <div className="mt-8">
-              <Upload_document onUploaded={setDocument} />
+              <Upload_document
+                onUploaded={(uploadedDocument) => {
+                  setDocument(uploadedDocument);
+
+                  getDocuments()
+                    .then(setDocuments)
+                    .catch((error) =>
+                      console.error("Failed to refresh documents:", error)
+                    );
+                }}
+              />
             </div>
           ) : (
             <div className="mt-8 flex-1 flex flex-col rounded-lg border border-gray-200 min-h-0">
@@ -230,11 +281,69 @@ export const Home = () => {
           </div>
 
           <div className="rounded-lg bg-gray-100 p-4">
-            <h3 className="font-medium">Statistics</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Uploaded PDFs: {document ? 1 : 0}
-            </p>
+  <h3 className="font-medium">Your Documents</h3>
+
+  {documentsLoading ? (
+    <p className="text-sm text-gray-500 mt-2">
+      Loading documents...
+    </p>
+  ) : documents.length === 0 ? (
+    <p className="text-sm text-gray-500 mt-2">
+      No documents uploaded yet.
+    </p>
+  ) : (
+    <div className="mt-3 space-y-2">
+      {documents.map((doc) => {
+        const isActive = document?.documentId === doc.id;
+
+        return (
+          <div
+            key={doc.id}
+            onClick={() => {
+              setDocument({
+                documentId: doc.id,
+                filename: doc.file_name,
+                pages: doc.page_count,
+              });
+
+              // Clear previous conversation when switching documents
+              setMessages([]);
+              setInput("");
+            }}
+            className={`flex items-center justify-between gap-2 rounded-lg bg-white border p-3 cursor-pointer transition ${
+              isActive
+                ? "border-violet-500 bg-violet-50"
+                : "border-gray-200 hover:border-violet-400"
+            }`}
+          >
+            {/* Document information */}
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-sm truncate">
+                {doc.file_name}
+              </p>
+
+              <p className="text-xs text-gray-500 mt-1">
+                {doc.page_count || 0} page(s) ·{" "}
+                {doc.chunk_count || 0} chunks
+              </p>
+            </div>
+
+            {/* Delete button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteDocument(doc);
+              }}
+              className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md px-2 py-1 text-xs"
+            >
+              Delete
+            </button>
           </div>
+        );
+      })}
+    </div>
+  )}
+</div>
         </div>
 
         {document && (

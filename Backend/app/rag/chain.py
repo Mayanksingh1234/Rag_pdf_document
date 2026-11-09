@@ -1,70 +1,84 @@
 import os
 
-from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 from langchain_google_genai import ChatGoogleGenerativeAI
+
 from app.rag.retriever import get_retriever
 
-BGE_QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
+
+BGE_QUERY_INSTRUCTION = (
+    "Represent this sentence for searching relevant passages: "
+)
 
 
-def format_docs(docs):
-    """Join retrieved chunks into a single context string, citing source page numbers."""
+def format_docs(rows):
+    """Format Supabase search results into RAG context."""
     formatted = []
-    for doc in docs:
-        page = doc.metadata.get("page", "unknown")
-        formatted.append(f"[page {page}] {doc.page_content}")
+
+    for row in rows:
+        page = row.get("page_number", "unknown")
+        content = row.get("content", "")
+
+        formatted.append(
+            f"[page {page}] {content}"
+        )
+
     return "\n\n".join(formatted)
 
 
 def get_llm(
-    # repo_id: str = "deepseek-ai/DeepSeek-V4.1-Flash-1017",
-    # max_new_tokens: int = 512,
-    # temperature: float = 0.3,
     model: str = "gemini-2.5-flash",
     temperature: float = 0,
 ):
-    """
-    Creates a chat-capable LLM backed by the HuggingFace Inference API.
-
-    Requires the HUGGINGFACEHUB_API_TOKEN environment variable to be set
-    (or pass huggingfacehub_api_token=... explicitly).
-    """
-    # token = os.environ.get("HUGGINGFACEHUB_API_TOKEN")
-    # if not token:
-    #     raise EnvironmentError(
-    #         "HUGGINGFACEHUB_API_TOKEN is not set. "
-    #         "Get a token from https://huggingface.co/settings/tokens "
-    #         "and set it as an environment variable."
-    #     )
     token = os.environ.get("GEMINI_API_KEY")
-    if not token:
-            raise EnvironmentError(
-                "GEMINI_API_KEY is not set. "
-                "Get a token from https://aistudio.google.com/ "
-                "and set it as an environment variable."
-            )
 
-    # endpoint = HuggingFaceEndpoint(
-    #     repo_id=repo_id,
-    #     max_new_tokens=max_new_tokens,
-    #     temperature=temperature,
-    #     huggingfacehub_api_token=token,
-    # )
-    # chat_model = ChatHuggingFace(llm=endpoint)
-    # return chat_model
+    if not token:
+        raise EnvironmentError(
+            "GEMINI_API_KEY is not set."
+        )
+
     return ChatGoogleGenerativeAI(
         model=model,
         temperature=temperature,
     )
 
 
+PROMPT_TEMPLATE = """You are a highly accurate document question-answering assistant.
 
-PROMPT_TEMPLATE = """You are a helpful assistant answering questions about a PDF document.
-Use only the context below to answer. you can also elaborate on the answer if needed.
-If the answer isn't in the context, say you don't know.
+Your task is to answer the user's question using ONLY the information provided in the retrieved context from the uploaded documents.
+
+IMPORTANT RULES:
+
+1. Read the user's question carefully and identify exactly what information is being requested.
+
+2. Use the retrieved context to find the most relevant information.
+   - Prefer chunks that directly answer the question.
+   - Combine information from multiple chunks when necessary.
+   - Ignore irrelevant or unrelated chunks.
+
+3. Do NOT use outside knowledge, assumptions, or information that is not present in the retrieved context.
+
+4. If the retrieved context contains enough information to answer the question:
+   - Give a clear and accurate answer.
+   - Explain the answer briefly when necessary.
+   - Preserve important numbers, dates, names, conditions, and definitions exactly as supported by the documents.
+
+5. If the answer requires information from multiple sections of the document, combine those sections logically instead of answering from only one chunk.
+
+6. If the retrieved context does NOT contain enough information to answer the question, say:
+   "I couldn't find enough information in the provided documents to answer this question."
+
+   Do NOT guess or fabricate an answer.
+
+7. If the question is ambiguous, explain what is unclear and answer only the part that can be supported by the documents.
+
+8. If the user asks for a summary, comparison, explanation, list, or specific value, format the answer appropriately.
+
+9. Keep the answer concise and directly relevant to the user's question. Do not unnecessarily repeat the context.
+
+10. When possible, mention the document or section from which the answer was obtained.
 
 Context:
 {context}
@@ -75,31 +89,39 @@ Question:
 Answer:"""
 
 
-def get_rag_chain(vector_store, k: int = 4, document_id: str = None, **llm_kwargs):
-    """
-    Builds an end-to-end RAG chain: retrieve chunks -> format -> prompt -> LLM -> string output.
+def get_rag_chain(
+    k: int = 4,
+    document_id: str = None,
+    user_id: str = None,
+    **llm_kwargs
+):
+    retriever = get_retriever(
+        k=k,
+        document_id=document_id,
+        user_id=user_id
+    )
 
-    The BGE instruction prefix is applied ONLY for embedding/retrieval, never
-    sent to the LLM as part of the actual question — otherwise the model tries
-    to literally follow it instead of answering.
-
-    Usage:
-        chain = get_rag_chain(vector_store)
-        answer = chain.invoke("What are the candidate's key skills?")
-    """
-    retriever = get_retriever(vector_store, k=k, document_id=document_id)
     llm = get_llm(**llm_kwargs)
-    prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+
+    prompt = ChatPromptTemplate.from_template(
+        PROMPT_TEMPLATE
+    )
 
     def retrieve_context(question: str) -> str:
         prefixed_query = BGE_QUERY_INSTRUCTION + question
-        docs = retriever.invoke(prefixed_query)
-        return format_docs(docs)
+
+        rows = retriever(prefixed_query)
+
+        return format_docs(rows)
 
     rag_chain = (
-        {"context": RunnableLambda(retrieve_context), "question": RunnablePassthrough()}
+        {
+            "context": RunnableLambda(retrieve_context),
+            "question": RunnablePassthrough()
+        }
         | prompt
         | llm
         | StrOutputParser()
     )
+
     return rag_chain

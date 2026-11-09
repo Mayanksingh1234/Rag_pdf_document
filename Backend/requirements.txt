@@ -27,3 +27,6 @@ huggingface-hub
 
 # HTTP / utilities
 requests
+
+#superbase
+supabase

@@ -18,12 +18,12 @@ export const Upload_document = ({ onUploaded }) => {
     try {
       const result = await uploadDocument(file)
       onUploaded({
-        documentId: result.documnet_id,
+        documentId: result.document_id,
         filename: result.filename,
         pages: result.pages,
       })
     } catch (err) {
-      setError("Couldn't reach the server. Is it running on port 8000?")
+      setError("Couldn't reach the server. Please try again later.")
     } finally {
       setIsUploading(false)
     }

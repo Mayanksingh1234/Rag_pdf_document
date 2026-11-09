@@ -5,8 +5,10 @@ import { IoDocumentTextOutline } from "react-icons/io5";
 import { RiChatSmile3Line } from "react-icons/ri";
 import { IoMdSettings } from "react-icons/io";
 import { SiFormbricks } from "react-icons/si";
+import { useNavigate } from "react-router-dom";
 export const Left_component = () => {
   const [open,setOpen] =useState(false);
+  const navigate = useNavigate();
   return (
     <>
     <div className='md:hidden p-2 shadow block'>
@@ -23,55 +25,59 @@ export const Left_component = () => {
 
 
 
-    <div className={`
-          fixed md:static top-0 left-0 z-50
-          h-screen w-64 bg-white dark:bg-gray-900
-          text-black dark:text-white p-5
-          transform transition-transform duration-500
-          ${open ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0
-        `}>
-        <aside className="w-50 text-black dark:text-white flex flex-col p-5">
+    <div
+  className={`
+    fixed md:static top-0 left-0 z-50
+    h-screen w-64
+    bg-white dark:bg-gray-900
+    text-black dark:text-white
+    transform transition-transform duration-500
+    ${open ? "translate-x-0" : "-translate-x-full"}
+    md:translate-x-0
+  `}
+>
+  <aside className="h-screen w-full text-md text-black dark:text-white p-5">
 
-        <nav className="space-y-2">
-          <button className="w-full text-left px-4 py-2 hover:text-violet-500 transition hover:bg-violet-100 p-2 rounded-lg">
-            <div className='flex gap-2 items-center '>
+    <nav className="space-y-1">
 
-           <LuCirclePlus className="hover:text-violet-500 size-4 lg:size-5 md:size-3 "/>New Chat
-            </div>
-          </button>
-          
-          <button className="w-full text-left px-4 py-2  hover:text-violet-500 transition hover:bg-violet-100 p-2 rounded-lg">
-           <div className='flex gap-2 items-center'>
+      {/* New Chat */}
 
-           <IoHomeOutline className="hover:text-violet-500 size-4 lg:size-5 md:size-3 "/>Dashboard
-            </div>
-          </button>
+      {/* Dashboard */}
+      <button
+        onClick={() => navigate("/")}
+        className="w-full text-left px-4 py-3 hover:text-violet-500 transition hover:bg-violet-100 rounded-lg"
+      >
+        <div className="flex gap-3 items-center">
+          <IoHomeOutline className="size-5" />
+          Home
+        </div>
+      </button>
 
-          <button className="w-full text-left px-4 py-2  hover:text-violet-500 transition hover:bg-violet-100 p-2 rounded-lg">
-           <div className='flex gap-2 items-center'>
+      {/* Documents */}
+      <button
+        onClick={() => navigate("/documents")}
+        className="w-full text-left px-4 py-3 hover:text-violet-500 transition hover:bg-violet-100 rounded-lg"
+      >
+        <div className="flex gap-3 items-center">
+          <IoDocumentTextOutline className="size-5" />
+          Documents
+        </div>
+      </button>
 
-           <IoDocumentTextOutline className="hover:text-violet-500 size-4 lg:size-5 md:size-3 "/>Documents
-            </div>
-          </button>
+      {/* Settings */}
+      <button onClick={()=>navigate("/setting")}
+        className="w-full text-left px-4 py-3 hover:text-violet-500 transition hover:bg-violet-100 rounded-lg"
+      >
+        <div className="flex gap-3 items-center">
+          <IoMdSettings className="size-5" />
+          Settings
+        </div>
+      </button>
 
-          <button className="w-full text-left px-4 py-2  hover:text-violet-500 transition hover:bg-violet-100 p-2 rounded-lg">
-           <div className='flex gap-2 items-center'>
+    </nav>
 
-           <RiChatSmile3Line className="hover:text-violet-500 size-4 lg:size-5 md:size-3 "/>Chats
-            </div>
-            
-          </button>
-
-          <button className="w-full text-left px-4 py-2  hover:text-violet-500 transition hover:bg-violet-100 p-2 rounded-lg">
-           <div className='flex gap-2 items-center'>
-
-           <IoMdSettings  className="hover:text-violet-500 size-4 lg:size-5 md:size-3 "/>Settings
-            </div>
-          </button>
-        </nav>
-      </aside>
-    </div>
+  </aside>
+</div>
     </>
   )
 }

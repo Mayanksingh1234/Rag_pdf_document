@@ -1,23 +1,17 @@
-def get_retriever(vector_store, k: int = 4, search_type: str = "similarity", document_id:str=None):
-    """
-    Wraps the Chroma vector store as a LangChain retriever.
+from app.rag.vector_store import search_document_chunks
 
-    Args:
-        vector_store: A Chroma VectorStore instance (from vector_store.py).
-        k: Number of chunks to retrieve per query.
-        search_type: "similarity", "mmr", or "similarity_score_threshold".
 
-    Returns:
-        A LangChain VectorStoreRetriever.
-    """
+def get_retriever(
+    k: int = 4,
+    document_id: str = None,
+    user_id: str = None
+):
+    def retrieve(query: str):
+        return search_document_chunks(
+            query=query,
+            document_id=document_id,
+            user_id=user_id,
+            k=k
+        )
 
-    search_kwargs={"k":k}
-    if document_id:
-        search_kwargs["filter"]={"document_id":document_id}
-
-    retriever = vector_store.as_retriever(
-
-        search_type=search_type,
-        search_kwargs=search_kwargs
-    )
-    return retriever
+    return retrieve
