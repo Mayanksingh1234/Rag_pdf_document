@@ -1,16 +1,19 @@
-
 import React, { useState } from "react";
 import { IoChatbubbleEllipses } from "react-icons/io5";
 import { MdPersonOutline } from "react-icons/md";
+import { FiMoon, FiSun } from "react-icons/fi";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { logout } from "../context/UserSlice";
+import { toggleTheme } from "../context/ThemeSlice";
 
 export const Navbar = () => {
   const [open, setOpen] = useState(false);
 
   const user = useSelector((state) => state.user);
+  const mode = useSelector((state) => state.theme.mode);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -24,78 +27,120 @@ export const Navbar = () => {
   };
 
   return (
-    <div className="flex justify-between items-center p-2">
-      
-      {/* Logo */}
-      <div className="flex items-center gap-2">
-        <div className="bg-violet-500 p-2 rounded-xl">
-          <IoChatbubbleEllipses className="text-white size-4 md:size-6" />
-        </div>
+    <nav className="w-full px-3 sm:px-4 md:px-6 py-3 bg-gray-50 dark:bg-gray-950 transition-colors duration-200">
+      <div className="flex items-center justify-between">
 
-        <h1 className="text-l md:text-xl font-bold">
-          PDF Assistant
-        </h1>
-      </div>
+        {/* Logo */}
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 sm:gap-3"
+        >
+          <div className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-violet-600 rounded-xl shadow-sm">
+            <IoChatbubbleEllipses className="text-white text-lg sm:text-xl" />
+          </div>
 
-      {/* Right side */}
-      <div className="flex items-center gap-5 md:gap-6 lg:gap-8">
+          <h1 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white">
+            PDF Assistant
+          </h1>
+        </button>
 
-        {/* User Icon */}
-        <div className="relative">
+        {/* Right side */}
+        <div className="flex items-center gap-2 sm:gap-4">
 
+          {/* Theme button */}
           <button
-            onClick={() => setOpen(!open)}
-            className="cursor-pointer"
+            onClick={() => dispatch(toggleTheme())}
+            className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+            aria-label="Toggle theme"
+            title={
+              mode === "light"
+                ? "Switch to dark mode"
+                : "Switch to light mode"
+            }
           >
-            <MdPersonOutline className="size-6 md:size-7 lg:size-9 text-violet-500" />
+            {mode === "light" ? (
+              <FiMoon className="text-lg sm:text-xl" />
+            ) : (
+              <FiSun className="text-lg sm:text-xl" />
+            )}
           </button>
 
-          {/* Dropdown */}
-          {open && (
-            <div className="absolute right-0 mt-3 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-50 p-3">
+          {/* User */}
+          <div className="relative">
 
-              {user.isloggedin ? (
-                <>
-                  <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                    <p className="font-semibold text-gray-900 dark:text-white">
-                      {user.name || "User"}
-                    </p>
+            <button
+              onClick={() => setOpen(!open)}
+              className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+              aria-label="User menu"
+            >
+              <MdPersonOutline className="text-violet-600 text-2xl sm:text-3xl" />
+            </button>
 
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {user.email}
-                    </p>
+            {/* Dropdown */}
+            {open && (
+              <div className="absolute right-0 top-12 sm:top-14 w-[calc(100vw-2rem)] max-w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+
+                {user.isloggedin ? (
+                  <>
+                    {/* User information */}
+                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+
+                      <p className="font-semibold text-gray-900 dark:text-white truncate">
+                        {user.name || "User"}
+                      </p>
+
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">
+                        {user.email}
+                      </p>
+
+                    </div>
+
+                    {/* Logout */}
+                    <div className="p-2">
+
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-3 py-2.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition"
+                      >
+                        Logout
+                      </button>
+
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-2">
+
+                    <button
+                      onClick={() => {
+                        setOpen(false);
+                        navigate("/login");
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-violet-50 dark:hover:bg-gray-800 transition"
+                    >
+                      Login
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setOpen(false);
+                        navigate("/signup");
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-violet-50 dark:hover:bg-gray-800 transition"
+                    >
+                      Sign Up
+                    </button>
+
                   </div>
+                )}
 
-                  <button
-                    onClick={handleLogout}
-                    className="w-full mt-2 text-left px-3 py-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => navigate("/login")}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-violet-50 dark:hover:bg-gray-700"
-                  >
-                    Login
-                  </button>
+              </div>
+            )}
 
-                  <button
-                    onClick={() => navigate("/signup")}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-violet-50 dark:hover:bg-gray-700"
-                  >
-                    Sign Up
-                  </button>
-                </>
-              )}
+          </div>
 
-            </div>
-          )}
         </div>
 
       </div>
-    </div>
+    </nav>
   );
 };
